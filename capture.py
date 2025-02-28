@@ -22,7 +22,8 @@ flow_stats = defaultdict(lambda: {
     "Flow Packets/s": 0,
     "Fwd Packets/s": 0,
     "Start Time": None,
-    "Last Packet Time": None
+    "Last Packet Time": None,
+    "Average Packet Size": 0
 })
 
 # Function to process packets
@@ -32,7 +33,6 @@ def process_packet(packet):
             src_ip = packet.ip.src
             protocol = packet.transport_layer  # TCP/UDP
             timestamp = float(packet.sniff_time.timestamp())
-
             src_port = int(packet[protocol].srcport)
             pkt_length = int(packet.length)
             
@@ -63,6 +63,10 @@ def process_packet(packet):
             # Compute Flow Bytes/sec
             if flow_stats[flow_key]["Flow Duration"] > 0:
                 flow_stats[flow_key]["Flow Bytes/s"] = flow_stats[flow_key]["Total Length of Fwd Packets"] / flow_stats[flow_key]["Flow Duration"]
+
+            # Compute Average Packet Size
+            if flow_stats[flow_key]["Fwd Packet Lengths"]:
+                flow_stats[flow_key]["Average Packet Size"] = flow_stats[flow_key]["Total Length of Fwd Packets"] / len(flow_stats[flow_key]["Fwd Packet Lengths"])
             
             # Update last packet time
             flow_stats[flow_key]["Last Packet Time"] = timestamp
@@ -110,16 +114,17 @@ df = pd.DataFrame(data)
 
 # Select only required columns
 columns = [
-    "Source IP", "Source Port", "Packet Length Mean", "Fwd Packet Length Min", "Subflow Fwd Bytes",
-    "Fwd Packet Length Mean", "Total Length of Fwd Packets", "Fwd Packet Length Max",
-    "Max Packet Length", "Min Packet Length", "Avg Fwd Segment Size", "Fwd IAT Mean", "Flow IAT Mean",
-    "Flow Bytes/s", "Fwd IAT Min", "Fwd IAT Max", "Flow IAT Min", "Flow IAT Max", "Flow Packets/s",
-    "Flow Duration", "Fwd Packets/s"
+    'Source IP', 'Source Port', 'Average Packet Size', 'Fwd Packet Length Min', 'Packet Length Mean',
+    'Subflow Fwd Bytes', 'Fwd Packet Length Mean', 'Total Length of Fwd Packets', 'Fwd Packet Length Max',
+    'Max Packet Length', 'Min Packet Length', 'Avg Fwd Segment Size', 'Fwd IAT Mean', 'Flow IAT Mean',
+    'Flow Bytes/s', 'Fwd IAT Min', 'Fwd IAT Max', 'Flow IAT Min', 'Flow IAT Max', 'Flow Packets/s',
+    'Flow Duration', 'Fwd Packets/s'
 ]
 
 df = df[columns]
 df.to_csv(OUTPUT_CSV, index=False)
 
 print(f"Packet capture completed. Data saved to {OUTPUT_CSV}")
+
 
 
